@@ -368,23 +368,45 @@ namespace SimpleSockets.Messaging
 		{
 			try
 			{
-				//Header
-				var headerBytes = BuildHeader();
-				byte[] payLoadBytes = new byte[headerBytes.Length + Data.Length + Header.Length + Metadata.Length];
 
-				headerBytes.CopyTo(payLoadBytes, 0);
+				if (MessageType == MessageType.MaticardMsg)
+				{
+					var headerBytes = new byte[6];
+					byte[] payLoadBytes = new byte[Data.Length + headerBytes.Length];
 
-				if (HeaderFields[2])
-					Header.CopyTo(payLoadBytes, headerBytes.Length);
-
-				if (HeaderFields[7])
-					Metadata.CopyTo(payLoadBytes, headerBytes.Length + Header.Length);
-
-				Data.CopyTo(payLoadBytes, headerBytes.Length + Header.Length + Metadata.Length);
-
-				PayLoad = payLoadBytes;
+					// set length
+					var len = Data.Length + headerBytes.Length;
+					var lenStr = len.ToString("X").PadLeft(6, '0');
 
 
+					headerBytes = Encoding.UTF8.GetBytes(lenStr);
+					headerBytes.CopyTo(payLoadBytes, 0);
+
+					//
+					
+					Data.CopyTo(payLoadBytes, headerBytes.Length + Header.Length + Metadata.Length);
+					PayLoad = payLoadBytes;
+
+				}
+				else
+				{
+					//Header
+					var headerBytes = BuildHeader();
+					byte[] payLoadBytes = new byte[headerBytes.Length + Data.Length + Header.Length + Metadata.Length];
+
+					headerBytes.CopyTo(payLoadBytes, 0);
+
+					if (HeaderFields[2])
+						Header.CopyTo(payLoadBytes, headerBytes.Length);
+
+					if (HeaderFields[7])
+						Metadata.CopyTo(payLoadBytes, headerBytes.Length + Header.Length);
+
+					Data.CopyTo(payLoadBytes, headerBytes.Length + Header.Length + Metadata.Length);
+
+					PayLoad = payLoadBytes;
+				}
+				
 				Log("Message has been built and has a length of " + PayLoad.Length);
 				Log("===============================================");
 
@@ -526,22 +548,32 @@ namespace SimpleSockets.Messaging
 			{
 				if (_state.Flag == MessageFlag.Idle)
 				{
-					DeconstructHeaderField(_state.Buffer[0]);
-					var length = CalculateHeaderFieldsLength();
-					if (_state.Buffer.Length < length)
-					{
-						return true;
+					byte[] temp = new byte[6];
+
+					Array.Copy(_state.Buffer, temp, 6);
+                    if (CheckIfMaticardHeader(temp))
+                    {
+						// is maticard Msg
+						_state.Flag = MessageFlag.ProcessingData;
+                    }
+                    else
+                    {
+						DeconstructHeaderField(_state.Buffer[0]);
+						var length = CalculateHeaderFieldsLength();
+						if (_state.Buffer.Length < length)
+						{
+							return true;
+						}
+
+						byte headerFieldByte = _state.Buffer[0];
+						DeconstructHeaderFields(headerFieldByte, _state.Buffer);
+						byte[] remainingBytes = new byte[_state.Buffer.Length - length];
+						receive -= length;
+
+						Array.Copy(_state.Buffer, length, remainingBytes, 0, remainingBytes.Length);
+						_state.ChangeBuffer(remainingBytes);
+						_state.Flag = MessageFlag.ProcessingHeader;
 					}
-
-					byte headerFieldByte = _state.Buffer[0];
-					DeconstructHeaderFields(headerFieldByte, _state.Buffer);
-					byte[] remainingBytes = new byte[_state.Buffer.Length - length];
-					receive -= length;
-
-					Array.Copy(_state.Buffer, length, remainingBytes, 0, remainingBytes.Length);
-					_state.ChangeBuffer(remainingBytes);
-					_state.Flag = MessageFlag.ProcessingHeader;
-
 				}
 
 				if (_state.Buffer.Length < 2)
@@ -665,6 +697,34 @@ namespace SimpleSockets.Messaging
 			Compressed = HeaderFields[6];
 
 		}
+
+		private bool CheckIfMaticardHeader(byte[] headerBytes)
+        {
+            try
+            {
+				var len = Encoding.UTF8.GetString(headerBytes);
+				var rx = new System.Text.RegularExpressions.Regex(@"^[0-9A-F]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+				var matches = rx.Matches(len);
+				if(matches.Count != 1)
+                {
+					return false;
+                }
+				int MsgLength = int.Parse(len, System.Globalization.NumberStyles.HexNumber);
+
+				MessageType = MessageType.MaticardMsg;
+				_receivingMessageLength = MsgLength;
+				Encrypted = false;
+				Compressed = false;
+				return true;
+			}
+            catch
+            {
+
+				return false;
+            }
+        }
+
 
 		#endregion
 
@@ -1022,6 +1082,10 @@ namespace SimpleSockets.Messaging
 						}
 						break;
 				}
+				case MessageType.MaticardMsg:
+					var msgString = Encoding.UTF8.GetString(_receivedBytes, 6, _receivedBytes.Length-6);
+					_socket.RaiseMaticardReceived(_state, msgString);
+					break;
 				default:
 						throw new ArgumentOutOfRangeException();
 			}

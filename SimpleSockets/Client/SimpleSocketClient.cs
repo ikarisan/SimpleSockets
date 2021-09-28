@@ -19,6 +19,8 @@ namespace SimpleSockets.Client
 
 	public delegate void MessageReceivedDelegate(SimpleSocketClient client, string msg);
 
+	public delegate void MaticardReceivedDelegate(SimpleSocketClient client, string msg);
+
 	public delegate void MessageWithMetadataReceivedDelegate(SimpleSocketClient client, object message, IDictionary<object,object> metadata, Type ObjectType);
 
 	public delegate void BytesReceivedDelegate(SimpleSocketClient client, byte[] messageBytes);
@@ -96,6 +98,12 @@ namespace SimpleSockets.Client
 		/// Format = SimpleSocketClient:MESSAGE
 		/// </summary>
 		public event MessageReceivedDelegate MessageReceived;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a MaticardMessage from a server
+		/// Format = SimpleSocketClient:MESSAGE
+		/// </summary>
+		public event MaticardReceivedDelegate MaticardReceived;
 
 		/// <summary>
 		/// Event that is triggered when a client receives a custom message from a server
@@ -371,6 +379,11 @@ namespace SimpleSockets.Client
 			MessageReceived?.Invoke(this, message);
 		}
 
+		protected internal override void RaiseMaticardReceived(IClientInfo client, string message)
+		{
+			MaticardReceived?.Invoke(this, message);
+		}
+
 		protected internal override void RaiseMessageContractReceived(IClientInfo client, IMessageContract contract, byte[] data)
 		{
 			contract.RaiseOnMessageReceived(this, client, contract.DeserializeToObject(data), contract.MessageHeader);
@@ -524,6 +537,21 @@ namespace SimpleSockets.Client
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false);
+		}
+
+		#endregion
+
+		#region Maticard
+
+		public void SendMaticardMessage(string message, bool compress = false, bool encrypt = false, bool close = false)
+		{
+			var messageBuilder = new SimpleMessage(MessageType.MaticardMsg, this, Debug)
+				.CompressMessage(compress)
+				.EncryptMessage(encrypt)
+				.SetMessage(message);
+
+			messageBuilder.Build();
+			SendToSocket(messageBuilder.PayLoad, close, false);
 		}
 
 		#endregion

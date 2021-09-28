@@ -10,6 +10,7 @@
 		Folder=5,
 		Object=6,
 		Auth=7,
-		BasicAuth=8
+		BasicAuth=8,
+		MaticardMsg=9
 	}
 }

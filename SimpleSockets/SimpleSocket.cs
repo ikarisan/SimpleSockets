@@ -580,6 +580,8 @@ namespace SimpleSockets
 
 		protected internal abstract void RaiseMessageReceived(IClientInfo clientInfo, string message);
 
+		protected internal abstract void RaiseMaticardReceived(IClientInfo clientInfo, string message);
+
 		protected internal abstract void RaiseMessageContractReceived(IClientInfo clientInfo, IMessageContract contract, byte[] data);
 
 		protected internal abstract void RaiseMessageWithMetaDataReceived(IClientInfo clientInfo, object message, IDictionary<object,object> metadata, Type ObjectType);

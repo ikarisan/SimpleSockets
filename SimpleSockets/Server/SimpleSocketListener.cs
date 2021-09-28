@@ -23,6 +23,8 @@ namespace SimpleSockets.Server
 
 	public delegate void MessageReceivedDelegate(IClientInfo client, string message);
 
+	public delegate void MaticardReceivedDelegate(IClientInfo client, string message);
+
 	public delegate void MessageWithMetadataReceivedDelegate(IClientInfo client, object message, IDictionary<object,object> metadata, Type objType);
 
 	public delegate void BytesReceivedDelegate(IClientInfo client, byte[] messageData);
@@ -110,6 +112,12 @@ namespace SimpleSockets.Server
 		/// Format is ID:MESSAGE
 		/// </summary>
 		public event MessageReceivedDelegate MessageReceived;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a MaticardMessage from a server
+		/// Format = SimpleSocketClient:MESSAGE
+		/// </summary>
+		public event MaticardReceivedDelegate MaticardReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives a Message with a custom header.
@@ -565,6 +573,11 @@ namespace SimpleSockets.Server
 			MessageReceived?.Invoke(client, message);
 		}
 
+		protected internal override void RaiseMaticardReceived(IClientInfo client, string message)
+		{
+			MaticardReceived?.Invoke(client, message);
+		}
+
 		protected internal override void RaiseMessageContractReceived(IClientInfo client, IMessageContract contract, byte[] data)
 		{
 			contract.RaiseOnMessageReceived(this,client, contract.DeserializeToObject(data), contract.MessageHeader);
@@ -677,6 +690,23 @@ namespace SimpleSockets.Server
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
+		}
+
+		#endregion
+
+		#region Maticard
+
+		public void SendMaticardMessage(int id, string message, bool compress = false, bool encrypt = false, bool close = false)
+		{
+			var client = GetClient(id);
+			var messageBuilder = new SimpleMessage(MessageType.MaticardMsg, this, Debug)
+				.CompressMessage(compress)
+				.EncryptMessage(encrypt)
+				.SetMessage(message)
+				.SetSendClient(client);
+
+			messageBuilder.Build();
+			SendToSocket(messageBuilder.PayLoad, close, false, id);
 		}
 
 		#endregion
