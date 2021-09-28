@@ -101,6 +101,34 @@ namespace Test.Sockets.Parallel
 		}
 
 		[Test]
+		public void Client_ParallelMaticardMassages_server()
+        {
+			Counter counter = new Counter();
+
+			ManualResetEvent mre = new ManualResetEvent(false);
+
+			SimpleSockets.Server.MaticardReceivedDelegate msgRec = (client, msg) => {
+				counter.Count();
+
+				if (counter.GetCount == _numClients * _numMessages)
+					mre.Set();
+			};
+
+			_server.MaticardReceived += msgRec;
+
+			foreach (var client in _clients)
+			{
+				new Thread(() => SendMaticardMessages(client, false)).Start();
+			}
+
+			// If it can't complete in 30 minutes fail
+			mre.WaitOne(new TimeSpan(0, 30, 0));
+
+			_server.MaticardReceived -= msgRec;
+			Assert.AreEqual((_numMessages * _numClients), counter.GetCount); // True if all messages have been received.
+		}
+
+		[Test]
 		public void Client_ParallelMessagesWithMetaData_Server()
 		{
 
@@ -182,6 +210,24 @@ namespace Test.Sockets.Parallel
 				}
 				else {
 					client.SendMessage(message + (i + 1));
+				}
+			}
+
+		}
+
+		private void SendMaticardMessages(SimpleSocketClient client, bool sendObjects)
+		{
+			string message = "This is test message nr ";
+
+			for (var i = 0; i < _numMessages; i++)
+			{
+				if (sendObjects)
+				{
+					client.SendObject(new DataObject(message + (i + 1), "This is a text", 15, new DateTime(2000, 1, 1)));
+				}
+				else
+				{
+					client.SendMaticardMessage(message + (i + 1));
 				}
 			}
 

@@ -73,6 +73,22 @@ namespace Test.Sockets
 		}
 
 		[Test]
+		public void Client_MaticardMessage_Server()
+		{
+			string message = "This is a test message.";
+
+			SimpleSockets.Server.MaticardReceivedDelegate msgRec = (client, msg) => {
+				Assert.AreEqual(message, msg);
+			};
+
+			using (var monitor = new EventMonitor(_server, "MaticardReceived", msgRec, Mode.MANUAL))
+			{
+				_client.SendMaticardMessage(message);
+				monitor.Verify();
+			}
+		}
+
+		[Test]
 		public void Client_CustomMessage_Server()
 		{
 			string message = "This is a test custom header message.";
@@ -153,6 +169,22 @@ namespace Test.Sockets
 			using (var monitor = new EventMonitor(_client, "MessageReceived", msgRec, Mode.MANUAL))
 			{
 				_server.SendMessage(_clientid, message);
+				monitor.Verify();
+			}
+		}
+
+		[Test]
+		public void Server_MaticardMessage_Client()
+		{
+			string message = "This is a test message.";
+
+			SimpleSockets.Client.MaticardReceivedDelegate msgRec = (client, msg) => {
+				Assert.AreEqual(message, msg);
+			};
+
+			using (var monitor = new EventMonitor(_client, "MaticardReceived", msgRec, Mode.MANUAL))
+			{
+				_server.SendMaticardMessage(_clientid, message);
 				monitor.Verify();
 			}
 		}
