@@ -9,7 +9,8 @@ If you are looking for working SimpleSockets, please use https://github.com/Cloe
 
 ## Maintainers
 
-[@Cloet](https://github.com/Cloet).
+Original project: [@Cloet](https://github.com/Cloet).
+This repository: [@Ikarisan](https://github.com/ikarisan)
 
 ## Contributing
 
