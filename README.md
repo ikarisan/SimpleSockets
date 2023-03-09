@@ -1,5 +1,4 @@
 # SimpleSockets
-[![NuGet version](https://badge.fury.io/nu/SimpleSockets.svg)](https://badge.fury.io/nu/SimpleSockets)
 
 SimpleSockets is a .NET Standard 2.1 library with integrated framing and ssl support that provides an easy way to build fast and easy to use Tcp/Ip programs.
 
