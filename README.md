@@ -12,16 +12,6 @@ If you are looking for working SimpleSockets, please use https://github.com/Cloe
 Original project: [@Cloet](https://github.com/Cloet).
 This repository: [@Ikarisan](https://github.com/ikarisan)
 
-## Contributing
-
-Feel free to dive in! [Open an issue](https://github.com/Cloet/SimpleSockets/issues) or submit PRs.
-
-### Contributors
-
-This project exists thanks to all the people who contribute. 
-
-
-
 ## License
 
 [MIT](LICENSE) © Mathias Cloet
